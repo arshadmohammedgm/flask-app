@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask  # define globally
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -35,21 +38,25 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build -t ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short_sha }} .
+        run: docker build -t $IMAGE_NAME:${{ steps.vars.outputs.short_sha }} .
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
       - name: Push Docker image
-        run: docker push ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.short_sha }}
+        run: docker push $IMAGE_NAME:${{ steps.vars.outputs.short_sha }}
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
 
   test:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
       SHORT_SHA: ${{ needs.build-and-push.outputs.short-sha }}
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
+      IMAGE_NAME: ${{ env.IMAGE_NAME }}
     steps:
       - name: Run container and test /health
         run: |
-          docker run -d -p 5000:5000 --name flaskapp ${{ env.IMAGE_NAME }}:$SHORT_SHA
+          docker run -d -p 5000:5000 --name flaskapp $IMAGE_NAME:$SHORT_SHA
           sleep 5
           curl --fail http://localhost:5000/health
           docker stop flaskapp
@@ -60,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SHORT_SHA: ${{ needs.build-and-push.outputs.short-sha }}
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
+      IMAGE_NAME: ${{ env.IMAGE_NAME }}
     steps:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
