@@ -58,18 +58,20 @@ jobs:
           docker rm flaskapp
 
   deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    env:
-      SHORT_SHA: ${{ needs.build-and-push.outputs.short-sha }}
-      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
-    steps:
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
+  needs: test
+  runs-on: ubuntu-latest
+  env:
+    SHORT_SHA: ${{ needs.build-and-push.outputs.short-sha }}
+    IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
+  steps:
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
 
-      - name: Set up Kubeconfig and deploy
-        run: |
-          echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
-          KUBECONFIG=$PWD/kubeconfig.yaml kubectl set image deployment/flask-deployment flask-container=${IMAGE_NAME}:$SHORT_SHA
+    - name: Set up Kubeconfig and deploy
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
+        export KUBECONFIG=$PWD/kubeconfig.yaml
+        kubectl set image deployment/flask-deployment flask-container=${IMAGE_NAME}:$SHORT_SHA
+        kubectl rollout status deployment/flask-deployment
