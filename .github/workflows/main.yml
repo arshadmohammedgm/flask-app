@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask  # define globally
+  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
 
 jobs:
   build-and-push:
@@ -38,21 +38,21 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
-        run: docker build -t $IMAGE_NAME:${{ steps.vars.outputs.short_sha }} .
         env:
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
+        run: docker build -t $IMAGE_NAME:${{ steps.vars.outputs.short_sha }} .
 
       - name: Push Docker image
-        run: docker push $IMAGE_NAME:${{ steps.vars.outputs.short_sha }}
         env:
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
+        run: docker push $IMAGE_NAME:${{ steps.vars.outputs.short_sha }}
 
   test:
     needs: build-and-push
     runs-on: ubuntu-latest
     env:
       SHORT_SHA: ${{ needs.build-and-push.outputs.short-sha }}
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
     steps:
       - name: Run container and test /health
         run: |
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SHORT_SHA: ${{ needs.build-and-push.outputs.short-sha }}
-      IMAGE_NAME: ${{ env.IMAGE_NAME }}
+      IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
     steps:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
@@ -75,6 +75,9 @@ jobs:
           version: 'latest'
 
       - name: Set up Kubeconfig and deploy
+        env:
+          IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
+          SHORT_SHA: ${{ needs.build-and-push.outputs.short-sha }}
         run: |
           echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
           export KUBECONFIG=$PWD/kubeconfig.yaml
