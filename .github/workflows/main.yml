@@ -67,11 +67,24 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'latest'
+         version: 'latest'
 
       - name: Set up Kubeconfig and deploy
         run: |
           echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
           export KUBECONFIG=$PWD/kubeconfig.yaml
-          kubectl set image deployment/flask-deployment flask-container=${IMAGE_NAME}:$SHORT_SHA
+
+          # Debug SHORT_SHA value
+          echo "SHORT_SHA is '${SHORT_SHA}'"
+
+          # Use latest if SHORT_SHA is empty
+          IMAGE_TAG=${SHORT_SHA:-latest}
+
+          # Apply deployment yaml first (if you have it)
+          kubectl apply -f deployment.yml
+
+          # Update the deployment image
+          kubectl set image deployment/flask-deployment flask-container=${IMAGE_NAME}:$IMAGE_TAG
+
+          # Wait for rollout to complete
           kubectl rollout status deployment/flask-deployment
