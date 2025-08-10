@@ -16,11 +16,11 @@ spec:
     spec:
       containers:
       - name: flask-container
-        image: yourdockerhubusername/app-flask:latest  # image tag will be overridden by your CI/CD
+        # This image will be overridden by your CI/CD pipeline during deployment
+        image: yourdockerhubusername/app-flask:latest  
         ports:
         - containerPort: 5000
 
-        # Resource requests and limits
         resources:
           requests:
             memory: "128Mi"
@@ -29,12 +29,10 @@ spec:
             memory: "256Mi"
             cpu: "500m"
 
-        # Environment variables from ConfigMap
         envFrom:
         - configMapRef:
-            name: flask-config
+            name: flask-config  # Make sure this ConfigMap exists in the cluster
 
-        # Liveness probe - checks if app is alive (restart if fails)
         livenessProbe:
           httpGet:
             path: /health
@@ -43,7 +41,6 @@ spec:
           periodSeconds: 10
           failureThreshold: 3
 
-        # Readiness probe - checks if app is ready to serve traffic
         readinessProbe:
           httpGet:
             path: /health
