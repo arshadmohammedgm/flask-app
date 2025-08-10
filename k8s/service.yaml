@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+  labels:
+    app: flaskapp
+spec:
+  selector:
+    app: flaskapp           # must match your Deployment's pod label
+  type: LoadBalancer        # AKS: gets an external IP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80              # external
+      targetPort: 5000      # container port

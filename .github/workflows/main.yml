@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build image
+      - name: Build & push image
         run: |
           docker build -t $IMAGE_NAME:${{ steps.vars.outputs.short_sha }} .
           docker push $IMAGE_NAME:${{ steps.vars.outputs.short_sha }}
@@ -53,7 +53,7 @@ jobs:
       - name: Run container and test /health
         run: |
           docker run -d -p 5000:5000 --name flaskapp $IMAGE_NAME:$SHORT_SHA
-          sleep 5
+          for i in {1..15}; do curl -sf http://localhost:5000/health && break || sleep 2; done
           curl --fail http://localhost:5000/health
           docker stop flaskapp
           docker rm flaskapp
@@ -75,13 +75,33 @@ jobs:
         env:
           KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
         run: |
+          set -euo pipefail
+
           echo "$KUBE_CONFIG" > kubeconfig.yaml
           export KUBECONFIG="$PWD/kubeconfig.yaml"
 
-          kubectl apply -f k8s/configmap.yaml || true
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/deployment.yaml
+          echo "== k8s dir =="
+          ls -lah k8s || true
 
-          kubectl set image deployment/flask-deployment \
-            flask-container=${IMAGE_NAME}:${SHORT_SHA}
-          kubectl rollout status deployment/flask-deployment
+          # Apply configmap if present & non-empty
+          [[ -s k8s/configmap.yaml ]] && kubectl apply -f k8s/configmap.yaml || echo "Skipping configmap.yaml"
+
+          # Apply optional files only if present & non-empty
+          for f in secret.yaml service.yaml deployment.yaml ingress.yaml; do
+            if [[ -s "k8s/$f" ]]; then
+              echo "Applying k8s/$f"
+              kubectl apply -f "k8s/$f"
+            else
+              echo "Skipping k8s/$f (missing or empty)"
+            fi
+          done
+
+          # Swap image to the Git SHA and wait for rollout
+          if kubectl get deploy/flask-deployment >/dev/null 2>&1; then
+            kubectl set image deployment/flask-deployment \
+              flask-container=${IMAGE_NAME}:${SHORT_SHA}
+            kubectl rollout status deployment/flask-deployment
+          else
+            echo "Deployment flask-deployment not found; check k8s/deployment.yaml"
+            exit 1
+          fi
