@@ -1,12 +1,3 @@
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [main]
-
-env:
-  IMAGE_NAME: ${{ secrets.DOCKER_USERNAME }}/app-flask
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -28,7 +19,7 @@ jobs:
 
       - name: Extract short SHA
         id: vars
-        run: echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -67,24 +58,17 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
-         version: 'latest'
+          version: 'latest'
 
       - name: Set up Kubeconfig and deploy
         run: |
           echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
           export KUBECONFIG=$PWD/kubeconfig.yaml
 
-          # Debug SHORT_SHA value
           echo "SHORT_SHA is '${SHORT_SHA}'"
 
-          # Use latest if SHORT_SHA is empty
           IMAGE_TAG=${SHORT_SHA:-latest}
 
-          # Apply deployment yaml first (if you have it)
           kubectl apply -f k8s/deployment.yaml
-
-          # Update the deployment image
           kubectl set image deployment/flask-deployment flask-container=${IMAGE_NAME}:$IMAGE_TAG
-
-          # Wait for rollout to complete
           kubectl rollout status deployment/flask-deployment
