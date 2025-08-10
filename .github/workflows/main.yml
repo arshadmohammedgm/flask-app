@@ -81,7 +81,7 @@ jobs:
           IMAGE_TAG=${SHORT_SHA:-latest}
 
           # Apply deployment yaml first (if you have it)
-          kubectl apply -f deployment.yml
+          kubectl apply -f deployment.yaml
 
           # Update the deployment image
           kubectl set image deployment/flask-deployment flask-container=${IMAGE_NAME}:$IMAGE_TAG
