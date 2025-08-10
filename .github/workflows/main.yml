@@ -38,16 +38,16 @@ jobs:
 
       # 4. Test Container Health
       - run: |
-          docker run -d --name flask-test -p 5001:5000 ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker run -d --name flask-test -p 5000:5000 ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           sleep 5
-          curl -f http://localhost:5001/health
+          curl -f http://localhost:5000/health
           docker stop flask-test
 
       # 5. Deploy to Kubernetes
-      - uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-      - run: |
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-          kubectl set image deployment/devops-flask devops-flask=${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} --record
-          kubectl rollout status deployment/devops-flask
+      # - uses: azure/setup-kubectl@v4
+      #   with:
+      #     version: 'latest'
+      # - run: |
+      #     echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+      #     kubectl set image deployment/devops-flask devops-flask=${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} --record
+      #     kubectl rollout status deployment/devops-flask
