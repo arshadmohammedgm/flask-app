@@ -79,7 +79,6 @@ jobs:
           export KUBECONFIG="$PWD/kubeconfig.yaml"
 
           kubectl apply -f k8s/configmap.yaml || true
-          kubectl apply -f k8s/secret.yaml || true
           kubectl apply -f k8s/service.yaml
           kubectl apply -f k8s/deployment.yaml
 
