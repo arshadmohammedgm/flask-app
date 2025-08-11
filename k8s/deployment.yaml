@@ -1,39 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flask-deployment
+  name: flask-app
   labels:
-    app: flaskapp
+    app: flask-app
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: flaskapp
+      app: flask-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   template:
     metadata:
       labels:
-        app: flaskapp
+        app: flask-app
     spec:
-      # If your Docker Hub repo is private, uncomment lines below and create a pull secret:
-      # imagePullSecrets:
-      #   - name: dockerhub-pull-secret
       containers:
-        - name: flask-container
-          # Placeholder tag; GitHub Actions will replace this with :<SHORT_SHA>
-          image: arshadmohdgm/app-flask:latest
+        - name: flask
+          image: your-registry/your-image:latest   # e.g., docker.io/youruser/flask-simple:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: flask-config
+            - secretRef:
+                name: flask-secrets
           resources:
             requests:
-              cpu: "250m"
+              cpu: "100m"
               memory: "128Mi"
             limits:
               cpu: "500m"
               memory: "256Mi"
-          envFrom:
-            - configMapRef:
-                name: flask-config
           readinessProbe:
             httpGet:
               path: /health
@@ -50,7 +53,4 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 2
             failureThreshold: 3
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 10001
-            allowPrivilegeEscalation: false
+      terminationGracePeriodSeconds: 10
